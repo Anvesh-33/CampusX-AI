@@ -1,0 +1,644 @@
+import { useMemo, useState } from 'react';
+
+const studentDatabase = [
+  {
+    id: 1,
+    name: 'Aanya Sharma',
+    department: 'CSE',
+    skills: ['Python', 'Machine Learning', 'Data Analysis', 'Team Leadership'],
+    bio: 'Builds AI models and enjoys turning raw data into practical insights.',
+  },
+  {
+    id: 2,
+    name: 'Rohan Iyer',
+    department: 'ECE',
+    skills: ['Embedded Systems', 'IoT', 'Signal Processing', 'Circuit Design'],
+    bio: 'Works on connected hardware and sensor-driven prototypes.',
+  },
+  {
+    id: 3,
+    name: 'Meera Nair',
+    department: 'EEE',
+    skills: ['Power Systems', 'Sensors', 'Circuit Analysis', 'Energy Optimization'],
+    bio: 'Specializes in power-efficient solutions and smart energy systems.',
+  },
+  {
+    id: 4,
+    name: 'Arjun Patel',
+    department: 'Mechanical',
+    skills: ['CAD', '3D Modeling', 'Prototyping', 'Thermal Design'],
+    bio: 'Creates high-performance physical prototypes and product concepts.',
+  },
+  {
+    id: 5,
+    name: 'Kavya Reddy',
+    department: 'Civil',
+    skills: ['Structural Design', 'AutoCAD', 'Project Planning', 'Surveying'],
+    bio: 'Balances design planning with execution-ready civil engineering thinking.',
+  },
+  {
+    id: 6,
+    name: 'Nikhil Rao',
+    department: 'CSE',
+    skills: ['Web Development', 'React', 'UI/UX', 'APIs'],
+    bio: 'Creates polished interfaces and connects features to backend systems.',
+  },
+  {
+    id: 7,
+    name: 'Sneha Verma',
+    department: 'ECE',
+    skills: ['Computer Vision', 'OpenCV', 'Robotics', 'Embedded C'],
+    bio: 'Excels at perception systems and intelligent machine vision pipelines.',
+  },
+  {
+    id: 8,
+    name: 'Vishal Kumar',
+    department: 'EEE',
+    skills: ['PCB Design', 'Power Electronics', 'Automation', 'Simulation'],
+    bio: 'Builds reliable electronics for automation and embedded use cases.',
+  },
+  {
+    id: 9,
+    name: 'Pooja Bansal',
+    department: 'Mechanical',
+    skills: ['Manufacturing', 'Robotics', 'Design Thinking', 'Simulation'],
+    bio: 'Bridges product design with build-ready system thinking.',
+  },
+  {
+    id: 10,
+    name: 'Ishita Sen',
+    department: 'Civil',
+    skills: ['GIS', 'Sustainability', 'Environment Analysis', 'Data Visualization'],
+    bio: 'Focuses on sustainable systems, resource tracking, and urban planning insights.',
+  },
+  {
+    id: 11,
+    name: 'Rahul Das',
+    department: 'CSE',
+    skills: ['Cloud', 'Node.js', 'Database Design', 'APIs'],
+    bio: 'Builds scalable systems and product-ready backend architecture.',
+  },
+  {
+    id: 12,
+    name: 'Aditya Menon',
+    department: 'ECE',
+    skills: ['Wireless Communication', 'Sensors', 'Embedded Systems', 'AI Hardware'],
+    bio: 'Connects sensing hardware with intelligent algorithmic decisions.',
+  },
+];
+
+const skillLibrary = {
+  'AI': ['ai', 'machine learning', 'ml', 'predictive', 'computer vision', 'vision', 'intelligent'],
+  'IoT': ['iot', 'sensor', 'embedded', 'arduino', 'esp32', 'mqtt', 'connected devices'],
+  'Web Development': ['web', 'frontend', 'backend', 'react', 'web development', 'dashboard', 'api'],
+  'Data Analysis': ['data analysis', 'analytics', 'data', 'visualization', 'statistics'],
+  'Robotics': ['robotics', 'automation', 'control system', 'mechanical system'],
+  'Sustainability': ['sustainability', 'green', 'energy', 'environment', 'eco'],
+  'Circuit Design': ['circuit design', 'pcb', 'power electronics', 'electronics'],
+  'CAD / Design': ['cad', 'design', '3d modeling', 'prototype', 'modeling'],
+  'Project Planning': ['planning', 'roadmap', 'execution', 'project management', 'timeline'],
+  'Computer Vision': ['computer vision', 'opencv', 'vision'],
+};
+
+const defaultProject = {
+  name: 'Smart Waste Segregation System',
+  description:
+    'Build an AI-powered smart waste segregation system that identifies recyclable and organic waste using computer vision, sensor integration, and a digital dashboard for campus waste management and sustainability tracking.',
+  skills: 'AI, Computer Vision, IoT, Web Development, Sustainability, Project Planning',
+};
+
+const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+const findSkillMatch = (projectSkill) => {
+  const clean = normalize(projectSkill);
+  const match = Object.keys(skillLibrary).find((skill) => {
+    const aliases = skillLibrary[skill].map(normalize);
+    return aliases.includes(clean) || clean.includes(skill.toLowerCase()) || skill.toLowerCase().includes(clean);
+  });
+  return match || projectSkill;
+};
+
+const analyzeProject = (project) => {
+  const text = `${project.name} ${project.description} ${project.skills}`.toLowerCase();
+  const parsedSkills = project.skills
+    ? project.skills.split(',').map((skill) => skill.trim()).filter(Boolean)
+    : [];
+
+  const resolvedSkills = [...parsedSkills.map(findSkillMatch)];
+  const discoveredSkills = Object.keys(skillLibrary).filter((skill) => {
+    const keywords = skillLibrary[skill].map(normalize);
+    return keywords.some((keyword) => text.includes(keyword));
+  });
+
+  const finalSkills = [...new Set([...resolvedSkills, ...discoveredSkills])];
+
+  const requiredDepartments = [...new Set(finalSkills.flatMap((skill) => {
+    const departmentMap = {
+      AI: ['CSE', 'ECE'],
+      'Web Development': ['CSE'],
+      IoT: ['ECE', 'EEE'],
+      Sustainability: ['Civil', 'EEE'],
+      Robotics: ['ECE', 'Mechanical'],
+      'Data Analysis': ['CSE', 'Civil'],
+      'Computer Vision': ['ECE', 'CSE'],
+      'Project Planning': ['Civil', 'CSE'],
+      'CAD / Design': ['Mechanical', 'Civil'],
+      'Circuit Design': ['EEE', 'ECE'],
+    };
+    return departmentMap[skill] || ['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil'];
+  }))];
+
+  return {
+    requiredSkills: finalSkills.length ? finalSkills : ['AI', 'Web Development', 'IoT', 'Project Planning'],
+    suitableDepartments: requiredDepartments,
+  };
+};
+
+const scoreStudentForSkills = (student, requiredSkills) => {
+  const studentSkillSet = new Set(student.skills.map((skill) => normalize(skill)));
+  const matchedSkills = requiredSkills.filter((skill) =>
+    Array.from(studentSkillSet).some((studentSkill) =>
+      studentSkill.includes(normalize(skill)) || normalize(skill).includes(studentSkill)
+    )
+  );
+
+  return {
+    student,
+    matchCount: matchedSkills.length,
+    primarySkill: matchedSkills[0] || student.skills[0],
+  };
+};
+
+const buildRecommendation = (projectData) => {
+  const analysis = analyzeProject(projectData);
+
+  const rankedStudents = studentDatabase
+    .map((student) => scoreStudentForSkills(student, analysis.requiredSkills))
+    .sort((a, b) => b.matchCount - a.matchCount || a.student.name.localeCompare(b.student.name));
+
+  const selectedStudents = [];
+  const usedDepartments = new Set();
+
+  for (const entry of rankedStudents) {
+    const { student } = entry;
+    if (selectedStudents.length >= 5) break;
+    if (usedDepartments.has(student.department)) continue;
+
+    const hasUniqueExpertise = student.skills.some((skill) =>
+      analysis.requiredSkills.some((req) => normalize(req) === normalize(skill))
+    );
+
+    if (hasUniqueExpertise) {
+      selectedStudents.push(student);
+      usedDepartments.add(student.department);
+    }
+  }
+
+  const fillFromRemaining = studentDatabase.filter(
+    (student) => !selectedStudents.some((selected) => selected.id === student.id)
+  );
+
+  for (const student of fillFromRemaining) {
+    if (selectedStudents.length >= 5) break;
+    if (usedDepartments.has(student.department)) continue;
+    selectedStudents.push(student);
+    usedDepartments.add(student.department);
+  }
+
+  const finalSelected = selectedStudents.slice(0, 5).map((student) => {
+    const matchedSkills = analysis.requiredSkills.filter((skill) =>
+      student.skills.some((studentSkill) =>
+        normalize(studentSkill).includes(normalize(skill)) || normalize(skill).includes(normalize(studentSkill))
+      )
+    );
+
+    const roleMap = {
+      AI: 'AI/ML Lead',
+      'Web Development': 'Frontend & App Engineer',
+      IoT: 'IoT Systems Engineer',
+      Sustainability: 'Sustainability & Impact Analyst',
+      Robotics: 'Robotics & Prototyping Lead',
+      'Computer Vision': 'Vision Systems Engineer',
+      'Project Planning': 'Project Coordinator',
+      'CAD / Design': 'Design & Prototyping Lead',
+      'Circuit Design': 'Hardware Engineer',
+      'Data Analysis': 'Data & Insights Analyst',
+    };
+
+    const assignedRole = matchedSkills.length
+      ? roleMap[matchedSkills[0]] || 'Core Team Member'
+      : 'Core Team Member';
+
+    const reasons = {
+      AI: 'Brings AI modeling and smart decision-making capability essential for waste classification.',
+      'Web Development': 'Creates a user-friendly dashboard and ensures project visibility for stakeholders.',
+      IoT: 'Connects physical hardware and sensor-based data collection into the solution.',
+      Sustainability: 'Helps evaluate environmental impact and keeps the project aligned to sustainable outcomes.',
+      Robotics: 'Contributes to prototyping and the physical workflow of the system.',
+      'Computer Vision': 'Builds the vision layer required to classify waste correctly in real time.',
+      'Project Planning': 'Keeps the team aligned, organized, and execution-ready throughout the project.',
+      'CAD / Design': 'Transforms concepts into practical, buildable prototypes and hardware layouts.',
+      'Circuit Design': 'Supports electronics and circuit-level reliability for the device.',
+      'Data Analysis': 'Extracts actionable trends from system data and monitoring dashboards.',
+    };
+
+    const reason = matchedSkills.length
+      ? reasons[matchedSkills[0]]
+      : `${student.department} student adds complementary strengths to the team with practical project execution skills.`;
+
+    return {
+      ...student,
+      role: assignedRole,
+      reason,
+      matchedSkills,
+    };
+  });
+
+  const teamSkillCoverage = Array.from(
+    new Set(finalSelected.flatMap((student) => student.skills))
+  );
+
+  const missingSkills = analysis.requiredSkills.filter((skill) => {
+    return !teamSkillCoverage.some((teamSkill) =>
+      normalize(teamSkill).includes(normalize(skill)) || normalize(skill).includes(normalize(teamSkill))
+    );
+  });
+
+  const gapRecommendation =
+    missingSkills.length > 0
+      ? studentDatabase
+          .filter((student) =>
+            student.skills.some((skill) =>
+              missingSkills.some((req) =>
+                normalize(skill).includes(normalize(req)) || normalize(req).includes(normalize(skill))
+              )
+            )
+          )
+          .sort((a, b) => b.skills.length - a.skills.length)[0]
+      : null;
+
+  const timeline = [
+    {
+      phase: 'Week 1',
+      title: 'Problem framing & requirements',
+      tasks: ['Define use cases', 'Validate problem statement', 'Lock major requirements'],
+    },
+    {
+      phase: 'Week 2',
+      title: 'System design & architecture',
+      tasks: ['Design sensors and workflows', 'Map backend structure', 'Create UI mockups'],
+    },
+    {
+      phase: 'Week 3',
+      title: 'Prototype development',
+      tasks: ['Build hardware prototype', 'Train AI model', 'Integrate dashboard'],
+    },
+    {
+      phase: 'Week 4',
+      title: 'Testing & demo readiness',
+      tasks: ['Run validation tests', 'Fix gaps', 'Prepare demo and pitch deck'],
+    },
+  ];
+
+  return {
+    analysis,
+    selectedStudents: finalSelected,
+    gapRecommendation,
+    missingSkills,
+    timeline,
+  };
+};
+
+const skillColors = {
+  CSE: 'blue',
+  ECE: 'violet',
+  EEE: 'amber',
+  Mechanical: 'emerald',
+  Civil: 'rose',
+};
+
+function App() {
+  const [screen, setScreen] = useState('home');
+  const [project, setProject] = useState(defaultProject);
+
+  const recommendation = useMemo(() => buildRecommendation(project), [project]);
+
+  const handleInputChange = (field, value) => {
+    setProject((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const teamCoverage = recommendation.selectedStudents.flatMap((student) => student.skills);
+
+  const renderHome = () => (
+    <div className="screen hero-screen">
+      <div className="hero-copy">
+        <div className="eyebrow">AI-powered student matchmaking</div>
+        <h1>CampusX AI</h1>
+        <p className="tagline">Find the right people. Build the right team.</p>
+        <p className="subtext">
+          Connect students from different departments to build multidisciplinary teams for projects, hackathons, and innovation.
+        </p>
+        <button className="primary-button" onClick={() => setScreen('create')}>
+          Create Project
+        </button>
+      </div>
+
+      <div className="hero-visual">
+        <div className="floating-card large">
+          <div className="mini-header">
+            <span className="dot blue" />
+            <span className="dot violet" />
+            <span className="dot green" />
+          </div>
+          <div className="chart-block">
+            <div className="bar bar-1" />
+            <div className="bar bar-2" />
+            <div className="bar bar-3" />
+            <div className="bar bar-4" />
+          </div>
+          <div className="visual-info">
+            <span>Project Analyzer</span>
+            <strong>Team Match Score: 96%</strong>
+          </div>
+        </div>
+
+        <div className="floating-card small top-right">
+          <h4>AI Team Match</h4>
+          <ul>
+            <li>ML + Hardware</li>
+            <li>Design + UI</li>
+            <li>Campus Impact</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCreateProject = () => (
+    <div className="screen form-screen">
+      <div className="panel-header">
+        <div>
+          <div className="eyebrow">Create project</div>
+          <h2>Describe your idea</h2>
+        </div>
+      </div>
+
+      <div className="form-card">
+        <label>
+          Project Name
+          <input
+            value={project.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            placeholder="Smart Waste Segregation System"
+          />
+        </label>
+
+        <label>
+          Project Description
+          <textarea
+            value={project.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            rows="6"
+            placeholder="Describe your idea, problem, and expected impact..."
+          />
+        </label>
+
+        <label>
+          Required technology / skills (optional)
+          <input
+            value={project.skills}
+            onChange={(e) => handleInputChange('skills', e.target.value)}
+            placeholder="AI, Computer Vision, IoT, Sustainability"
+          />
+        </label>
+
+        <button className="primary-button" onClick={() => setScreen('recommendation')}>
+          Find My Team
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderRecommendation = () => (
+    <div className="screen">
+      <div className="panel-header two-col">
+        <div>
+          <div className="eyebrow">AI Team Recommendation</div>
+          <h2>{project.name}</h2>
+        </div>
+        <button className="secondary-button" onClick={() => setScreen('skill-gap')}>
+          View Skill Gap
+        </button>
+      </div>
+
+      <div className="agent-flow">
+        {['Project Analyzer Agent', 'Student Matcher Agent', 'Team Builder Agent'].map((agent, index) => (
+          <div className="agent-step" key={agent}>
+            <span>{index + 1}</span>
+            <small>{agent}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid two-col">
+        <div className="panel-card">
+          <h3>Project requirements</h3>
+          <div className="pill-list">
+            {recommendation.analysis.requiredSkills.map((skill) => (
+              <span className="skill-pill" key={skill}>{skill}</span>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel-card">
+          <h3>Team skill coverage</h3>
+          <div className="coverage-summary">
+            <strong>{teamCoverage.length}</strong>
+            <span>unique skills covered</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="team-grid">
+        {recommendation.selectedStudents.map((student) => (
+          <div className="team-card" key={student.id}>
+            <div className="team-card-top">
+              <div>
+                <h4>{student.name}</h4>
+                <span className={`department-badge ${skillColors[student.department]}`}>{student.department}</span>
+              </div>
+              <span className="role-tag">{student.role}</span>
+            </div>
+
+            <div className="skills-list">
+              {student.skills.map((skill) => (
+                <span className="mini-pill" key={skill}>{skill}</span>
+              ))}
+            </div>
+
+            <p className="reason-text">{student.reason}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderSkillGap = () => (
+    <div className="screen">
+      <div className="panel-header two-col">
+        <div>
+          <div className="eyebrow">Skill Gap Detection</div>
+          <h2>Missing capability scan</h2>
+        </div>
+        <button className="secondary-button" onClick={() => setScreen('dashboard')}>
+          View Dashboard
+        </button>
+      </div>
+
+      <div className="agent-flow">
+        {['Skill Gap Detection Agent', 'Project Planner Agent'].map((agent, index) => (
+          <div className="agent-step" key={agent}>
+            <span>{index + 1}</span>
+            <small>{agent}</small>
+          </div>
+        ))}
+      </div>
+
+      <div className="gap-grid">
+        <div className="panel-card">
+          <h3>Missing skills</h3>
+          {recommendation.missingSkills.length > 0 ? (
+            recommendation.missingSkills.map((skill) => (
+              <div className="gap-item" key={skill}>
+                <strong>{skill}</strong>
+                <p>Needed to complete the system workflow and deliver a stronger final prototype.</p>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">No major skill gaps remain in the recommended team.</p>
+          )}
+        </div>
+
+        <div className="panel-card">
+          <h3>Recommended student to fill gap</h3>
+          {recommendation.gapRecommendation ? (
+            <div className="fill-card">
+              <h4>{recommendation.gapRecommendation.name}</h4>
+              <span className={`department-badge ${skillColors[recommendation.gapRecommendation.department]}`}>
+                {recommendation.gapRecommendation.department}
+              </span>
+              <div className="skills-list">
+                {recommendation.gapRecommendation.skills.map((skill) => (
+                  <span className="mini-pill" key={skill}>{skill}</span>
+                ))}
+              </div>
+              <p>
+                This student strengthens the team by covering the remaining gap with complementary expertise and hands-on execution ability.
+              </p>
+            </div>
+          ) : (
+            <p className="empty-state">The current team already covers the project requirements.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDashboard = () => (
+    <div className="screen">
+      <div className="panel-header two-col">
+        <div>
+          <div className="eyebrow">Project Dashboard</div>
+          <h2>Final multidisciplinary team</h2>
+        </div>
+        <button className="secondary-button" onClick={() => setScreen('home')}>
+          Back to Home
+        </button>
+      </div>
+
+      <div className="dashboard-grid">
+        <div className="panel-card full-width">
+          <h3>Team members</h3>
+          <div className="team-list">
+            {recommendation.selectedStudents.map((student) => (
+              <div key={student.id} className="member-row">
+                <div>
+                  <strong>{student.name}</strong>
+                  <p>{student.department}</p>
+                </div>
+                <span className="role-tag">{student.role}</span>
+                <span className="role-tag muted">{student.skills[0]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel-card full-width">
+          <h3>Responsibilities</h3>
+          <div className="responsibility-grid">
+            {recommendation.selectedStudents.map((student) => (
+              <div className="responsibility-card" key={student.id}>
+                <h4>{student.name}</h4>
+                <p>{student.role}</p>
+                <ul>
+                  {student.skills.slice(0, 2).map((skill) => (
+                    <li key={skill}>{skill}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="panel-card full-width">
+          <h3>AI-generated project timeline</h3>
+          <div className="timeline-list">
+            {recommendation.timeline.map((phase) => (
+              <div className="timeline-item" key={phase.phase}>
+                <div className="timeline-label">{phase.phase}</div>
+                <div className="timeline-content">
+                  <strong>{phase.title}</strong>
+                  <ul>
+                    {phase.tasks.map((task) => (
+                      <li key={task}>{task}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand-block" onClick={() => setScreen('home')}>
+          <div className="brand-mark">C</div>
+          <div>
+            <span className="brand-title">CampusX AI</span>
+          </div>
+        </div>
+
+        <nav className="topnav">
+          <button onClick={() => setScreen('home')}>Home</button>
+          <button onClick={() => setScreen('create')}>Create Project</button>
+          <button onClick={() => setScreen('recommendation')}>Recommendations</button>
+          <button onClick={() => setScreen('dashboard')}>Dashboard</button>
+        </nav>
+      </header>
+
+      <main className="main-content">
+        {screen === 'home' && renderHome()}
+        {screen === 'create' && renderCreateProject()}
+        {screen === 'recommendation' && renderRecommendation()}
+        {screen === 'skill-gap' && renderSkillGap()}
+        {screen === 'dashboard' && renderDashboard()}
+      </main>
+    </div>
+  );
+}
+
+export default App;
